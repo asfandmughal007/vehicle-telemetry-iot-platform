@@ -3,7 +3,7 @@
 #   docker build -f services/simulator/Dockerfile -t vehicle-simulator .
 
 # ---- build stage: install into a virtualenv, nothing from here but /opt/venv is shipped
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
@@ -14,7 +14,7 @@ COPY services/simulator ./services/simulator
 RUN pip install "./packages/telemetry-common[can]" ./services/simulator
 
 # ---- runtime stage: no compiler, no pip cache, no root
-FROM python:3.12-slim AS runtime
+FROM python:3.15-slim AS runtime
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
 COPY --from=builder /opt/venv /opt/venv
