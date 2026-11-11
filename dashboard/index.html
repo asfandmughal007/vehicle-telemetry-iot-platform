@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vehicle Telemetry Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Vehicle Telemetry</h1>
+      <span id="status" class="pill" role="status">connecting…</span>
+    </header>
+
+    <div id="error" class="banner" hidden></div>
+
+    <main>
+      <aside aria-label="Vehicles">
+        <h2>Fleet</h2>
+        <ul id="vehicle-list"></ul>
+        <p id="empty-fleet" class="muted" hidden>No vehicles have reported yet.</p>
+      </aside>
+
+      <section id="detail" aria-label="Selected vehicle" hidden>
+        <div class="title-row">
+          <h2 id="vehicle-title"></h2>
+          <span id="online-badge" class="pill"></span>
+          <span id="dtc-badge" class="pill danger" hidden></span>
+          <span id="last-seen" class="muted"></span>
+        </div>
+
+        <div class="cards" id="cards"></div>
+
+        <div class="grid">
+          <figure>
+            <figcaption>Track (last <span id="track-count">0</span> samples)</figcaption>
+            <svg id="map" viewBox="0 0 320 240" role="img" aria-label="GPS track"></svg>
+            <p class="muted small">Plain track plot — no map tiles, so no third-party requests.</p>
+          </figure>
+          <div id="charts"></div>
+        </div>
+      </section>
+
+      <p id="placeholder" class="muted">Select a vehicle.</p>
+    </main>
+
+    <script src="config.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

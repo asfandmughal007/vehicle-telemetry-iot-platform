@@ -1,0 +1,4 @@
+# Keep LF line endings in the repository (Dockerfiles, nginx and shell scripts need them).
+* text=auto eol=lf
+*.png binary
+*.ico binary

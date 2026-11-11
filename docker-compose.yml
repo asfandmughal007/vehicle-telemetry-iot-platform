@@ -1,0 +1,155 @@
+# Local development stack: simulator --CAN--> gateway --MQTT--> Mosquitto
+#
+#   docker compose up --build
+#   docker compose exec mosquitto mosquitto_sub -t 'vehicles/#' -v
+#
+# Values come from the environment or a local .env file (see .env.example); the defaults
+# below are for local development only. No secrets are defined here.
+
+name: vehicle-telemetry
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    ports:
+      - "127.0.0.1:1883:1883" # reachable from the host only, not from the network
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$$SYS/broker/uptime' -C 1 -W 3 >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *default-logging
+
+  simulator:
+    build:
+      context: .
+      dockerfile: services/simulator/Dockerfile
+    image: vehicle-telemetry/simulator:dev
+    init: true
+    environment:
+      SIM_VEHICLE_ID: ${VEHICLE_ID:-VH-0001}
+      SIM_OUTPUT: can
+      SIM_CAN_INTERFACE: ${CAN_INTERFACE:-udp_multicast}
+      SIM_CAN_CHANNEL: ${CAN_CHANNEL:-239.74.163.2}
+      SIM_SEED: ${SIM_SEED:-}
+      SIM_FAULT_RATE_PER_HOUR: ${SIM_FAULT_RATE_PER_HOUR:-6}
+      SIM_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks: [vehicle-bus, default]
+    restart: unless-stopped
+    logging: *default-logging
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/edge_gateway/Dockerfile
+    image: vehicle-telemetry/edge-gateway:dev
+    init: true
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      simulator:
+        condition: service_started
+    environment:
+      GW_VEHICLE_ID: ${VEHICLE_ID:-VH-0001}
+      GW_CAN_INTERFACE: ${CAN_INTERFACE:-udp_multicast}
+      GW_CAN_CHANNEL: ${CAN_CHANNEL:-239.74.163.2}
+      GW_MQTT_HOST: mosquitto
+      GW_MQTT_PORT: "1883"
+      GW_MQTT_TLS: "false"
+      GW_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - gateway-buffer:/data # store-and-forward buffer survives container restarts
+    networks: [vehicle-bus, default]
+    restart: unless-stopped
+    stop_grace_period: 15s # time to announce "offline" and close the buffer on SIGTERM
+    logging: *default-logging
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:2.5.2
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+    logging: *default-logging
+
+  # Local stand-in for "IoT Core rule -> Lambda": runs the Lambda's processing code.
+  ingestor:
+    build:
+      context: .
+      dockerfile: cloud/lambdas/telemetry_processor/Dockerfile
+    image: vehicle-telemetry/local-ingestor:dev
+    init: true
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      dynamodb-local:
+        condition: service_started
+    environment:
+      MQTT_HOST: mosquitto
+      TELEMETRY_TABLE: telemetry
+      VEHICLES_TABLE: vehicles
+      DYNAMODB_ENDPOINT_URL: http://dynamodb-local:8000
+      AWS_REGION: eu-central-1
+      # DynamoDB Local only needs *some* non-empty values. These are meaningless dummies,
+      # not credentials: they are rejected by real AWS.
+      AWS_ACCESS_KEY_ID: local-dummy
+      AWS_SECRET_ACCESS_KEY: local-dummy
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    logging: *default-logging
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    image: vehicle-telemetry/api:dev
+    init: true
+    depends_on:
+      ingestor:
+        condition: service_started # the ingestor creates the tables on start-up
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      API_TELEMETRY_TABLE: telemetry
+      API_VEHICLES_TABLE: vehicles
+      API_DYNAMODB_ENDPOINT_URL: http://dynamodb-local:8000
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-http://localhost:8081}
+      AWS_REGION: eu-central-1
+      # Meaningless dummies required by DynamoDB Local (rejected by real AWS).
+      AWS_ACCESS_KEY_ID: local-dummy
+      AWS_SECRET_ACCESS_KEY: local-dummy
+      API_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    logging: *default-logging
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    image: vehicle-telemetry/dashboard:dev
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8081:8080" # http://localhost:8081
+    restart: unless-stopped
+    logging: *default-logging
+
+networks:
+  # The "vehicle" network carries the simulated CAN bus (UDP multicast). It is separate
+  # from the default network that carries MQTT, mirroring the physical separation of the
+  # vehicle bus and the cellular uplink.
+  vehicle-bus:
+    driver: bridge
+
+volumes:
+  mosquitto-data:
+  gateway-buffer:

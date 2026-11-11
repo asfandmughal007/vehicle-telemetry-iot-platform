@@ -1,0 +1,53 @@
+# Repository-wide tooling configuration.
+# Each component (packages/*, services/*) has its own pyproject.toml with its dependencies.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["packages/*/src", "services/*/src", "cloud/lambdas/*/src", "infra/cdk"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",  # pycodestyle / pyflakes
+    "I",            # import sorting
+    "B",            # bugbear
+    "UP",           # pyupgrade
+    "N",            # naming
+    "SIM",          # simplifications
+    "C4",           # comprehensions
+    "PT",           # pytest style
+    "RUF",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["telemetry_common", "vehicle_simulator", "edge_gateway", "telemetry_processor", "telemetry_api", "sim_helpers", "gw_helpers", "tp_helpers", "api_helpers", "vehicle_telemetry_cdk"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+pythonpath = ["infra/cdk"]
+testpaths = [
+    "packages/telemetry-common/tests",
+    "services/simulator/tests",
+    "services/edge_gateway/tests",
+    "cloud/lambdas/telemetry_processor/tests",
+    "services/api/tests",
+    "infra/cdk/tests",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["cantools.*", "can.*", "boto3.*", "botocore.*", "moto.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["telemetry_common", "vehicle_simulator", "edge_gateway", "telemetry_processor", "telemetry_api"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

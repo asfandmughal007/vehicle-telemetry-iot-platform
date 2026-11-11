@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Environment / secrets — never commit
+.env
+*.pem
+*.key
+*.crt
+certs/
+
+# Runtime data
+*.sqlite3
+*.db
+data/buffer/
+
+# AWS CDK
+cdk.out/
+cdk.context.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vehicle-simulator"
+version = "0.1.0"
+description = "Simulated vehicle that emits DBC-encoded telemetry on a CAN bus."
+requires-python = ">=3.11"
+dependencies = [
+    "telemetry-common[can]",
+    "python-can>=4.3,<5",
+    "pydantic-settings>=2.2,<3",
+]
+
+[project.scripts]
+vehicle-simulator = "vehicle_simulator.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vehicle_simulator"]
