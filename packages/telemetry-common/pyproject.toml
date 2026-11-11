@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "telemetry-common"
+version = "0.1.0"
+description = "Shared contract for the Vehicle Telemetry IoT Platform: schema, MQTT topics, CAN database."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7,<3",
+]
+
+[project.optional-dependencies]
+# Only components that touch the CAN bus need cantools (simulator, gateway).
+# The Lambda and the API install the package without this extra to stay small.
+can = ["cantools>=39.4,<41"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/telemetry_common"]
