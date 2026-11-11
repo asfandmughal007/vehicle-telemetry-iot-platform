@@ -65,7 +65,7 @@ jobs:
         run: pytest --cov --cov-report=term-missing --cov-report=xml
       - name: Upload coverage report
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-xml
           path: coverage.xml
@@ -147,7 +147,7 @@ jobs:
           CDK_DEFAULT_REGION: eu-central-1
         run: cdk synth -c environment=dev --quiet
       - name: Upload CloudFormation template
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cloudformation-template
           path: infra/cdk/cdk.out/*.template.json
