@@ -1,5 +1,9 @@
 # Vehicle Telemetry IoT Platform
 
+[![CI](https://github.com/asfandmughal007/vehicle-telemetry-iot-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/asfandmughal007/vehicle-telemetry-iot-platform/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+
 An end-to-end vehicle telemetry pipeline: simulated **CAN bus → edge gateway → MQTT → AWS IoT
 Core → Lambda → DynamoDB → FastAPI → dashboard**, with infrastructure as code (AWS CDK),
 monitoring, containers and CI.
@@ -7,6 +11,12 @@ monitoring, containers and CI.
 It is a portfolio project that models a realistic telematics product: a vehicle (or test bench)
 produces CAN signals, a gateway decodes and validates them and survives an unreliable cellular
 link, and a cloud backend ingests, stores and serves the data.
+
+![Dashboard showing a simulated vehicle with an overheating fault (DTC P0217): live values, GPS track and signal charts](docs/dashboard.png)
+
+*The dashboard on simulated data: VH-0001 overheats, the diagnostic code `P0217` is set, and the
+engine drops into limp mode (speed falls while the coolant temperature keeps rising).
+Try it without Docker: `python scripts/demo_dashboard.py`.*
 
 - [Motivation](#motivation)
 - [Architecture](#architecture)
